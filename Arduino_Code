@@ -1,0 +1,64 @@
+#include <DHT.h>
+
+#define relayPin A1    // Pin for controlling the light (relay)
+#define DHTPIN 8        // Pin where the DHT22 is connected
+#define DHTTYPE DHT22   // DHT22 sensor model
+#define pumpPin 7       // Pin for controlling the water pump
+
+DHT dht(DHTPIN, DHTTYPE);
+int pH_Value; 
+float Voltage;
+
+void setup() { 
+  Serial.begin(9600);
+  pinMode(relayPin, OUTPUT);
+  pinMode(pumpPin, OUTPUT);
+  digitalWrite(pumpPin, HIGH);  // Turn off the pump initially
+  dht.begin();
+  pinMode(pH_Value, INPUT); 
+}
+
+
+void loop() {
+  // Water Level Control
+  int waterLevel = analogRead(A0);
+  static int pumpFlag = 0;
+  Serial.print("Water Level:");
+  Serial.println(waterLevel);
+  if (waterLevel >= 300 && pumpFlag == 1) {
+
+    digitalWrite(pumpPin, HIGH); // Turn off the pump
+    pumpFlag = 0;
+    Serial.println("Pump off");
+    delay(1000);
+  } else if (waterLevel < 300 && pumpFlag == 0) {
+    digitalWrite(pumpPin, LOW); // Turn on the pump
+    pumpFlag = 1;
+    Serial.println("Pump on");
+    delay(1000);
+  } else {
+    delay(2000);
+  }
+
+  // Temperature Control
+  float temperature = dht.readTemperature();
+  Serial.print("Temperature: ");
+  Serial.println(temperature);
+
+  if (temperature >= 40 && temperature <= 50||temperature < 40) {
+    // Turn on the light
+    analogWrite(relayPin, 0); // 100% power
+    Serial.println("Light ON");
+  } else {
+    // Turn off the light
+    analogWrite(relayPin, 225); // 0% power
+    Serial.println("Light OFF");
+  }
+  pH_Value = analogRead(A2); 
+  Voltage = pH_Value * (5.0 / 1024.0);
+  float Po = 21 -  ((2.5 - Voltage) / 0.18); 
+  Serial.println(Po); 
+
+  delay(5000); // Delay between readings
+}
+
